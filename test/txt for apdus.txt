@@ -14,6 +14,7 @@ i00A4000C023F00
 
 FF119678 PPS padrão
 FF1111?? PPS outro
+FF 11 96 78
 
 ---------------------------------------
 COMUNICAÇÕES COM O GEMPUS(envio e resposta):
