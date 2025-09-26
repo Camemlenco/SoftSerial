@@ -32,8 +32,6 @@ qualquer para comunicação bidirecional emulando o funcionamento de uma UART ha
 #define PWM_FREQUENCY1 922560  //3571200 para 9600 baud iniciais // Frequência inicial do smartCard (baudRate = f/372)
                                // Frequência final do smartCard (baudRate = f*Di/Fi)
 #define PWM_RESOLUTION 4       // Resolução do duty cycle em bits (mínimo necessário)
-#define Di 32
-#define Fi 512
 
 //******GLOBAL VARIABLES********************************************************************************** */
 String atrString = "";              // Variável para armazenar o ATR
@@ -43,6 +41,9 @@ ATR_TypeDef atr_struct;                    // Answer To Reset structure
 uint8_t response_buffer[255];          // Buffer para armazenar a resposta do APDU
 
 SoftwareSerial softSerial(-1,-1);  // Inicializa UART emulada sem pinos definidos inicialmente
+
+uint16_t Di = ATR_DEFAULT_D;  // Valor padrão de Di
+uint16_t Fi = ATR_DEFAULT_F;  // Valor padrão de Fi
 
 //******CUSTOM FUNCTIONS********************************************************************************************* */
 
@@ -137,7 +138,6 @@ uint8_t* encapsulateIBlock(uint8_t* apdu, size_t length) {
   Ns ^= 0x40; // Alterna o bit Ns (Send-sequence bit) para o próximo envio
 
   return encapsulatedAPDU; // Retorna o APDU encapsulado
-    
 }  
 
 /**
@@ -286,21 +286,6 @@ uint8_t ifs_request(ATR_TypeDef* p_atr){
     String response0 = sendAPDU(S_block_apdu, sizeof(S_block_apdu), response_buffer, sizeof(response_buffer));
     Serial.print("IFS ");
     printAPDU(response0);
-  
-  
-  uint8_t IFS_buffer[4] = {0xFF, 0x11, 0x45, 0xAA}; // Estrutura base do PPS
-
-  memset(response_buffer, 0, sizeof(response_buffer)); // Limpa o buffer de resposta
-  sendAPDU(IFS_buffer, sizeof(IFS_buffer), response_buffer, sizeof(response_buffer));
-
-  // Verifica se a resposta é igual ao IFS enviado
-  if (memcmp(IFS_buffer, response_buffer, sizeof(IFS_buffer)) == 0) {
-    Serial.println("IFS accepted by card.");
-    return 1; 
-  } else {
-    Serial.println("IFS rejected by card.");
-    return 0; 
-  }
 }
 
 
@@ -349,7 +334,12 @@ void setup() {
 	}
 
   pps_request(&atr_struct); // Envia o PPS request
+
+  ATR_GetParameter(&atr_struct, ATR_PARAMETER_F, &Fi); // Obtém o valor de Fi do ATR
+  ATR_GetParameter(&atr_struct, ATR_PARAMETER_D, &Di); // Obtém o valor
+
   ifs_request(&atr_struct); // Envia o IFS request
+  
 
   //**************FIM DAS CONFIGURAÇÕES, E RESET DO SMARTCARD É REALIZADO************ */
 
