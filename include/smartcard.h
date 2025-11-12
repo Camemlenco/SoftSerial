@@ -130,6 +130,16 @@
 #define T1_BUFFER_SIZE    ((uint32_t)(4 + 255 + 2)) /* Prologue + Information field + EDC */
 
 /* Exported types ------------------------------------------------------------*/
+/**
+  * @brief  HAL Status structures definition
+  */
+typedef enum
+{
+  HAL_OK       = 0x00U,
+  HAL_ERROR    = 0x01U,
+  HAL_BUSY     = 0x02U,
+  HAL_TIMEOUT  = 0x03U
+} HAL_StatusTypeDef;
 
 typedef enum
 {
@@ -241,7 +251,6 @@ typedef union
 
 /* Exported functions ------------------------------------------------------- */
 
-void SC_HW_Init(SMARTCARD_HandleTypeDef *SmartCardHandle);
 void T1_Protocol_Init(SCProtocol_t *p_t1, uint32_t sc_freq);
 int32_t T1_Negotiate_IFSD(SCProtocol_t *p_t1, uint8_t nad, uint8_t ifsd);
 int32_t T1_APDU(SCProtocol_t *p_t1, uint8_t nad, SC_APDU_t *p_apdu_c, SC_APDU_t *p_apdu_r);

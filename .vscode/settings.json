@@ -3,6 +3,9 @@
         "random": "cpp",
         "string.h": "c",
         "stdio.h": "c",
-        "new": "cpp"
+        "new": "cpp",
+        "array": "cpp",
+        "string": "cpp",
+        "string_view": "cpp"
     }
 }

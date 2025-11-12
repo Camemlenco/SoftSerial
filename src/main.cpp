@@ -15,6 +15,7 @@ qualquer para comunicação bidirecional emulando o funcionamento de uma UART ha
 #include <SPI.h>
 #include <SoftwareSerial.h>
 #include <atr.h>
+#include <smartcard.h>
 
 //******DEFINES************************************************************************ */
 #define INT_NCN 19    // Pino de sinalização de cartão inserido
@@ -24,13 +25,8 @@ qualquer para comunicação bidirecional emulando o funcionamento de uma UART ha
 #define CLK_SPI 14    // Pino CLOCK do SPI do NCN6001
 #define CS 15         // Pino CS do SPI do NCN6001
 
-#define SOFT_SERIAL_PIN 22  //Pino para comunicação serial emulada bidirecional half-duplex (IO_NCN)
-
 #define FLAG_PIN 18         // Pino de flag para fins de debug
 
-
-#define PWM_FREQUENCY1 922560  //3571200 para 9600 baud iniciais // Frequência inicial do smartCard (baudRate = f/372)
-                               // Frequência final do smartCard (baudRate = f*Di/Fi)
 #define PWM_RESOLUTION 4       // Resolução do duty cycle em bits (mínimo necessário)
 
 //******GLOBAL VARIABLES********************************************************************************** */
@@ -44,6 +40,10 @@ SoftwareSerial softSerial(-1,-1);  // Inicializa UART emulada sem pinos definido
 
 uint16_t Di = ATR_DEFAULT_D;  // Valor padrão de Di
 uint16_t Fi = ATR_DEFAULT_F;  // Valor padrão de Fi
+
+const int SOFT_SERIAL_PIN = 22; //Pino para comunicação serial emulada bidirecional half-duplex (IO_NCN)
+const uint32_t PWM_FREQUENCY1 = 922560; //3571200 para 9600 baud iniciais // Frequência inicial do smartCard (baudRate = f/372)
+                                               // Frequência final do smartCard (baudRate = f*Di/Fi)
 
 //******CUSTOM FUNCTIONS********************************************************************************************* */
 
@@ -286,6 +286,8 @@ uint8_t ifs_request(ATR_TypeDef* p_atr){
     String response0 = sendAPDU(S_block_apdu, sizeof(S_block_apdu), response_buffer, sizeof(response_buffer));
     Serial.print("IFS ");
     printAPDU(response0);
+    
+    return 1;
 }
 
 

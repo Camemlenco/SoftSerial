@@ -12,6 +12,7 @@
 #include "checksum.h"
 #include "buffer.h"
 #include <string.h>
+#include "smartcardESP.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -55,7 +56,6 @@ int32_t T1_TxRxBlock(SCProtocol_t * p_t1, uint8_t *p_buffer, uint32_t tx_length)
   HAL_StatusTypeDef  rx_status;
   uint32_t rx_len = 3;
   int32_t retvalue = 0;
-  SMARTCARD_HandleTypeDef *hsc = p_t1->pdevice;
 
   if ( p_t1->convention == INDIRECT )
   {
@@ -63,16 +63,10 @@ int32_t T1_TxRxBlock(SCProtocol_t * p_t1, uint8_t *p_buffer, uint32_t tx_length)
   }
 
   /* Send a block to the card */
-  HAL_SMARTCARD_Transmit( hsc, p_buffer, tx_length, SC_CWT_TIMEOUT );
-
-  ///***************************************CÓDIGO COMENTADO************************* */
-  /* Cleaning the receiver */
-  //__HAL_SMARTCARD_CLEAR_IT(hsc, SMARTCARD_CLEAR_OREF);
-  //retvalue = __HAL_SMARTCARD_GET_DRREGISTER(hsc);
-  //__HAL_SMARTCARD_CLEAR_OREFLAG(hsc);
+  HAL_SMARTCARD_Transmit(p_buffer, tx_length, SC_CWT_TIMEOUT );
 
   /* Get the block response from the card */
-  rx_status = HAL_SMARTCARD_Receive( hsc, p_buffer, rx_len, SC_CWT_TIMEOUT);
+  rx_status = HAL_SMARTCARD_Receive(p_buffer, rx_len, SC_CWT_TIMEOUT);
 
   if (rx_status == HAL_OK)
   {
@@ -84,7 +78,7 @@ int32_t T1_TxRxBlock(SCProtocol_t * p_t1, uint8_t *p_buffer, uint32_t tx_length)
     rx_len = p_buffer[2] + p_t1->rc_bytes;
 
     /* Get the block response from the card */
-    rx_status = HAL_SMARTCARD_Receive( hsc, &p_buffer[3], rx_len, SC_CWT_TIMEOUT);
+    rx_status = HAL_SMARTCARD_Receive(&p_buffer[3], rx_len, SC_CWT_TIMEOUT);
 
     if (rx_status == HAL_OK)
     {
@@ -181,7 +175,6 @@ HAL_StatusTypeDef T0_APDU(SCProtocol_t *p_t0, SC_APDU_t *p_apdu_c, SC_APDU_t *p_
   uint32_t i = 0;
   uint8_t locData = 0;
   uint8_t sc_data;
-  SMARTCARD_HandleTypeDef *hsc = p_t0->pdevice;
   HAL_StatusTypeDef retval;
 
   // Reset response buffer ---------------------------------------------------
@@ -194,17 +187,15 @@ HAL_StatusTypeDef T0_APDU(SCProtocol_t *p_t0, SC_APDU_t *p_apdu_c, SC_APDU_t *p_
   p_apdu_r->APDU_R.SW2 = 0;
 
   // clear UART data + reset delay
-  HAL_SMARTCARD_Receive(hsc, &sc_data, 2, SC_T1_BWT_TIMEOUT);
-  // clear UART errors
-  __HAL_SMARTCARD_CLEAR_OREFLAG(hsc);
-
+  HAL_SMARTCARD_Receive(&sc_data, 2, SC_T1_BWT_TIMEOUT);
+  
   // Send header -------------------------------------------------------------
   if ( p_t0->convention == INDIRECT )
   {
     Buffer_reverse( p_apdu_c->buffer, 4 );
   }
 
-  retval = HAL_SMARTCARD_Transmit(hsc, p_apdu_c->buffer, 4, SC_CWT_TIMEOUT);
+  retval = HAL_SMARTCARD_Transmit(p_apdu_c->buffer, 4, SC_CWT_TIMEOUT);
   if ( retval == HAL_OK)
   {
     // Send body length to/from SC ---------------------------------------------
@@ -222,21 +213,16 @@ HAL_StatusTypeDef T0_APDU(SCProtocol_t *p_t0, SC_APDU_t *p_apdu_c, SC_APDU_t *p_
       sc_data = ReverseBits( sc_data );
     }
 
-    retval = HAL_SMARTCARD_Transmit(hsc, &sc_data, 1, SC_CWT_TIMEOUT);
+    retval = HAL_SMARTCARD_Transmit(&sc_data, 1, SC_CWT_TIMEOUT);
     if ( retval == HAL_OK)
     {
-      // **************************************CÓDIGO COMENTADO*************************
-      // Flush the SC_USART DR
-      //__HAL_SMARTCARD_CLEAR_OREFLAG(hsc);
-      //sc_data = __HAL_SMARTCARD_GET_DRREGISTER(hsc);
-
       /* --------------------------------------------------------
         Wait Procedure byte from card:
         1 - ACK
         2 - NULL
         3 - SW1; SW2
       -------------------------------------------------------- */
-      if ((HAL_SMARTCARD_Receive(hsc, &locData, 1, SC_RECEIVE_TIMEOUT)) == HAL_OK)
+      if ((HAL_SMARTCARD_Receive(&locData, 1, SC_RECEIVE_TIMEOUT)) == HAL_OK)
       {
         if (((locData & (uint8_t)0xF0) == 0x60) || ((locData & (uint8_t)0xF0) == 0x90))
         {
@@ -250,7 +236,7 @@ HAL_StatusTypeDef T0_APDU(SCProtocol_t *p_t0, SC_APDU_t *p_apdu_c, SC_APDU_t *p_
             p_apdu_r->APDU_R.SW1 = locData;
           }
 
-          if ((HAL_SMARTCARD_Receive(hsc, &locData, 1, SC_RECEIVE_TIMEOUT)) == HAL_OK)
+          if ((HAL_SMARTCARD_Receive(&locData, 1, SC_RECEIVE_TIMEOUT)) == HAL_OK)
           {
             if ( p_t0->convention == INDIRECT )
             {
@@ -279,18 +265,14 @@ HAL_StatusTypeDef T0_APDU(SCProtocol_t *p_t0, SC_APDU_t *p_apdu_c, SC_APDU_t *p_
           {
             Buffer_reverse(  p_apdu_c->APDU_S.Body.Data, p_apdu_c->APDU_S.Body.LC );
           }
-          retval = HAL_SMARTCARD_Transmit(hsc, p_apdu_c->APDU_S.Body.Data, p_apdu_c->APDU_S.Body.LC, SC_T1_BWT_TIMEOUT);
+          retval = HAL_SMARTCARD_Transmit(p_apdu_c->APDU_S.Body.Data, p_apdu_c->APDU_S.Body.LC, SC_T1_BWT_TIMEOUT);
           
-          // ***************************************CÓDIGO COMENTADO*************************
-          // Flush the SC_USART RDR
-          //sc_data = __HAL_SMARTCARD_GET_DRREGISTER(hsc);
-          //__HAL_SMARTCARD_CLEAR_OREFLAG(hsc);
         }
 
         // Or receive body data from SC ------------------------------------------
         else if (p_apdu_c->APDU_S.Body.LE)
         {
-          if ((HAL_SMARTCARD_Receive(hsc, p_apdu_r->APDU_R.Data, p_apdu_c->APDU_S.Body.LE, SC_RECEIVE_TIMEOUT)) == HAL_OK)
+          if ((HAL_SMARTCARD_Receive(p_apdu_r->APDU_R.Data, p_apdu_c->APDU_S.Body.LE, SC_RECEIVE_TIMEOUT)) == HAL_OK)
           {        
             if ( p_t0->convention == INDIRECT )
             {
@@ -303,7 +285,7 @@ HAL_StatusTypeDef T0_APDU(SCProtocol_t *p_t0, SC_APDU_t *p_apdu_c, SC_APDU_t *p_
         i = 0;
         while (i < 10)
         {
-          if ((HAL_SMARTCARD_Receive(hsc, &locData, 1, SC_RECEIVE_TIMEOUT)) == HAL_OK)
+          if ((HAL_SMARTCARD_Receive(&locData, 1, SC_RECEIVE_TIMEOUT)) == HAL_OK)
           {
             if ( p_t0->convention == INDIRECT )
             {
@@ -325,7 +307,7 @@ HAL_StatusTypeDef T0_APDU(SCProtocol_t *p_t0, SC_APDU_t *p_apdu_c, SC_APDU_t *p_
         i = 0;
         while (i < 10)
         {
-          if ((HAL_SMARTCARD_Receive(hsc, &locData, 1, SC_RECEIVE_TIMEOUT)) == HAL_OK)
+          if ((HAL_SMARTCARD_Receive(&locData, 1, SC_RECEIVE_TIMEOUT)) == HAL_OK)
           {
             if ( p_t0->convention == INDIRECT )
             {

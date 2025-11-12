@@ -3,6 +3,8 @@
 #define _MAIN_H
 
 #include <Arduino.h>
+#include <SPI.h>
+#include <SoftwareSerial.h>
 #include <atr.h>
 
 #endif
